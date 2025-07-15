@@ -21,4 +21,5 @@ google-generativeai
 langdetect
 langcodes
 beautifulsoup4
-markdown
+markdowm
+markdown-it-py
