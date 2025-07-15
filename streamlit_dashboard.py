@@ -5,9 +5,16 @@ import os
 import time
 from datetime import datetime
 import base64
-import markdown
 import re
 from utils import generate_post_id, extract_excerpt_from_content, truncate_text
+
+# Import markdown with fallback
+try:
+    import markdown
+    MARKDOWN_AVAILABLE = True
+except ImportError:
+    MARKDOWN_AVAILABLE = False
+    st.warning("⚠️ Markdown tidak tersedia. Install: pip install markdown")
 
 # Import AI modules with error handling
 try:
@@ -527,8 +534,12 @@ def deploy_articles_only():
         processed_posts = []
         for post in st.session_state.posts:
             processed_post = post.copy()
-            processed_post['content'] = markdown.markdown(post['content'])
-            processed_post['excerpt'] = markdown.markdown(post['excerpt'])
+            if MARKDOWN_AVAILABLE:
+                processed_post['content'] = markdown.markdown(post['content'])
+                processed_post['excerpt'] = markdown.markdown(post['excerpt'])
+            else:
+                processed_post['content'] = post['content'].replace('\n', '<br>')
+                processed_post['excerpt'] = post['excerpt'].replace('\n', '<br>')
             processed_posts.append(processed_post)
 
         # Replace data posts di script yang ada
@@ -627,8 +638,13 @@ def generate_worker_script():
 
     # Convert markdown to HTML
     for post in st.session_state.posts:
-        post['content'] = markdown.markdown(post['content'])
-        post['excerpt'] = markdown.markdown(post['excerpt'])
+        if MARKDOWN_AVAILABLE:
+            post['content'] = markdown.markdown(post['content'])
+            post['excerpt'] = markdown.markdown(post['excerpt'])
+        else:
+            # Simple fallback - replace line breaks
+            post['content'] = post['content'].replace('\n', '<br>')
+            post['excerpt'] = post['excerpt'].replace('\n', '<br>')
 
     posts_json = json.dumps(st.session_state.posts, indent=2)
     ads_json = json.dumps(st.session_state.ads_config, indent=2)
@@ -917,8 +933,12 @@ def manage_posts():
                 if st.session_state.get(f"show_preview_{i}", False):
                     st.markdown("**Preview Konten:**")
                     # Convert markdown to HTML for preview
-                    html_content = markdown.markdown(post['content'])
-                    st.markdown(html_content, unsafe_allow_html=True)
+                    if MARKDOWN_AVAILABLE:
+                        html_content = markdown.markdown(post['content'])
+                        st.markdown(html_content, unsafe_allow_html=True)
+                    else:
+                        # Simple preview without markdown
+                        st.text(post['content'][:500] + "..." if len(post['content']) > 500 else post['content'])
     else:
         st.info("📝 Belum ada postingan. Tambahkan post pertama Anda!")
 
